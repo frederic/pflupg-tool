@@ -1,5 +1,7 @@
 #include <stdlib.h>
 #include <assert.h>
+#include <limits.h>
+#include <sys/stat.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>

@@ -152,9 +152,30 @@ int read_upg(unsigned char *filename, unsigned char **upg_buf, unsigned long int
 	return 0;
 }
 
+//from http://www.linuxquestions.org/questions/linux-newbie-8/how-to-simulate-mkdir-p-home-blah1-blah2-blah3-in-c-where-only-home-exist-759487/
+int mkdirp(char *pathname)
+{
+	char	pathname2[PATH_MAX+1];
+	int	i;
+
+	if (strlen(pathname) > PATH_MAX)
+		return 1;
+	else {
+		for (i = 0; i <= strlen(pathname); i++)
+			if (pathname[i] == '/' || pathname[i] == '\0') {
+				strncpy(pathname2, pathname, i);
+				pathname2[i] = '\0';
+				mkdir(pathname2, S_IRWXU | S_IRWXG);
+			}
+		return 0;
+	}
+}
+
 int unpack_upg(unsigned char *data, size_t data_size){
 	FILE *upg_entry_file;
+	char *dirc, *dname;
 	upg_entry_header *entry;
+	char dest_file[1024];
 	unsigned long int offset = 0;
 	unsigned int upg_entry_cnt = 0;
 	size_t result;
@@ -183,9 +204,16 @@ int unpack_upg(unsigned char *data, size_t data_size){
 			return -1;
 		}
 		
-		upg_entry_file = fopen(basename(entry->filename), "wb");
+		strcpy(dest_file, "./");
+		strncat(dest_file, entry->filename, sizeof(dest_file) - strlen(dest_file) - 1);
+		dirc = strdup(dest_file);
+		dname = dirname(dirc);
+		if(dname[0] != 0x2E || dname[1])
+			mkdirp(dname);
+		
+		upg_entry_file = fopen(dest_file, "wb");
 		if(!upg_entry_file) {
-			printf("Error opening upg entry file!\n");
+			printf("Error opening upg entry file (%s)!\n", dest_file);
 			break;
 		}
 		
