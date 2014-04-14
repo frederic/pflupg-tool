@@ -12,6 +12,8 @@
 #define UPG_HEADER_FLAG_ENCRYPTION	0x20000000
 #define UPG_ENTRY_HEADER_ATTR_NESTED	0x04000000
 
+static const char upg_header_magic[] = "2SWU3TXV";
+
 static const char pkey_modulus[] = "010001";
 static const char pkey_pubexpo[] = "010001";
 
@@ -23,8 +25,7 @@ typedef struct _struct_sig {
 
 typedef struct _upg_header
 {
-  uint32_t magic;
-  uint32_t magic1;
+  unsigned char magic[8];
   uint32_t header_size;
   uint32_t data_size;
   uint32_t crc;

@@ -136,6 +136,12 @@ int read_upg(unsigned char *filename, unsigned char **upg_buf, unsigned long int
 	}
 	
 	header = (upg_header*) *upg_buf;
+	
+	if(strncmp(header->magic, upg_header_magic, strlen(upg_header_magic))) {
+		printf("Error: wrong magic value in header!\n");
+		return -1;
+	}
+	
 	upg_header_extra_size = header->header_size - sizeof(upg_header);
 	if (upg_header_extra_size < 0) {
 		printf("Error: header size field is too low !\n");
