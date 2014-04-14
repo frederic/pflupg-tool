@@ -14,8 +14,11 @@
 
 static const char upg_header_magic[] = "2SWU3TXV";
 
-static const char pkey_modulus[] = "010001";
-static const char pkey_pubexpo[] = "010001";
+#define PUBLIC_KEYS_CNT	2
+static const char *public_keys[PUBLIC_KEYS_CNT][3] = { // { name, public exponent e (hex string), modulus n (hex string)}
+	{"my_key_1", "010001", "AABBCCDD"},
+	{"my_key_2", "010001", "010E020F"}
+};
 
 typedef struct _struct_sig {
 	unsigned char sha1[20];

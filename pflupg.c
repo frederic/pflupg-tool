@@ -19,7 +19,7 @@ void swap_bytes(unsigned char buf[], unsigned int len) {
 	}
 }
 
-int decrypt_upg_signature(unsigned char *sig, unsigned int sig_size)
+int decrypt_upg_signature(unsigned char *sig, unsigned int sig_size, unsigned int pubkey_idx)
 {
 	const char pkey_fmt[] = "(public-key (rsa (n %M)(e %M)))";
 	const char sig_fmt[] = "(data (flags raw) (value %M))";
@@ -32,11 +32,11 @@ int decrypt_upg_signature(unsigned char *sig, unsigned int sig_size)
 	swap_bytes(sig, sig_size);
 	
 	//Create RSA public key S-expression
-	if(err = gcry_mpi_scan(&mpi_modulus, GCRYMPI_FMT_HEX, pkey_modulus, 0, NULL)) {
+	if(err = gcry_mpi_scan(&mpi_modulus, GCRYMPI_FMT_HEX, public_keys[pubkey_idx][2], 0, NULL)) {
 		fprintf (stderr, "Fail to create mpi from modulus: %s/%s\n", gcry_strsource (err), gcry_strerror (err));
 		return -1;
 	}
-	if(err = gcry_mpi_scan(&mpi_pubexpo, GCRYMPI_FMT_HEX, pkey_pubexpo, 0, NULL)) {
+	if(err = gcry_mpi_scan(&mpi_pubexpo, GCRYMPI_FMT_HEX, public_keys[pubkey_idx][1], 0, NULL)) {
 		fprintf (stderr, "Fail to create mpi from public exponent: %s/%s\n", gcry_strsource (err), gcry_strerror (err));
 		return -1;
 	}
@@ -239,11 +239,16 @@ int unpack_upg(unsigned char *data, size_t data_size){
 int main(int argc, char* argv[])
 {
 	unsigned long int upg_file_size;
+	unsigned int pubkey_idx = -1;
 	unsigned char *upg_buf;
 	upg_header *header;
 	
-	if(argc != 2){
-		printf("Usage: %s <upg_filename>\n", argv[0]);
+	if(argc < 2){
+		int i;
+		printf("Usage: %s <upg_filename> [key_name]\n", argv[0]);
+		printf("%u keys available :\n", PUBLIC_KEYS_CNT);
+		for(i = 0; i < PUBLIC_KEYS_CNT; i++)
+			printf("* %s\n", public_keys[i][0]);
 		return -1;
 	}
 	
@@ -260,7 +265,21 @@ int main(int argc, char* argv[])
 	printf("UPG mask : 0x%8x\n", header->mask);
 	
 	if(header->mask & UPG_HEADER_FLAG_ENCRYPTION){
-		if(decrypt_upg_signature((unsigned char*)&header->signature, sizeof(header->signature))){
+		if(argc != 3){
+			printf("Error: this UPG seems to be encrypted. You have to provide a key name !\n");
+			return -1;
+		}
+		
+		for(pubkey_idx = 0; pubkey_idx < PUBLIC_KEYS_CNT; pubkey_idx++){
+			if(!strncmp(argv[2], public_keys[pubkey_idx][0], strlen(public_keys[pubkey_idx][0])))
+				break;
+		}
+		if(pubkey_idx == PUBLIC_KEYS_CNT){
+			printf("Error: cannot find specified key !\n");
+			return -1;
+		}
+		
+		if(decrypt_upg_signature((unsigned char*)&header->signature, sizeof(header->signature), pubkey_idx)){
 			printf("Error: cannot decrypt signature !\n");
 			return -1;
 		}
