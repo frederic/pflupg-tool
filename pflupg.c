@@ -23,7 +23,7 @@ int decrypt_upg_signature(unsigned char *sig, unsigned int sig_size, unsigned in
 {
 	const char pkey_fmt[] = "(public-key (rsa (n %M)(e %M)))";
 	const char sig_fmt[] = "(data (flags raw) (value %M))";
-	gcry_sexp_t sexp_pubkey, sexp_sig, sexp_sig_plain;
+	gcry_sexp_t sexp_pubkey, sexp_sig, sexp_sig_plain, sexp_sig_token;
 	gcry_mpi_t mpi_sig,mpi_modulus, mpi_pubexpo;
 	gcry_error_t err = 0;
 	unsigned char *plain;
@@ -60,16 +60,16 @@ int decrypt_upg_signature(unsigned char *sig, unsigned int sig_size, unsigned in
 		return -1;
 	}
 	
-	if(!(sexp_sig_plain = gcry_sexp_find_token(sexp_sig_plain, "a", 0))) {
+	if(!(sexp_sig_token = gcry_sexp_find_token(sexp_sig_plain, "a", 0))) {
 		fprintf (stderr, "Fail to find token in signature: %s/%s\n", gcry_strsource (err), gcry_strerror (err));
 		return -1;
 	}
-	if(gcry_sexp_length(sexp_sig_plain) < 2 ) {
+	if(gcry_sexp_length(sexp_sig_token) < 2 ) {
 		fprintf (stderr, "Error:  signature sexpr length too small\n");
 		return -1;
 	}
 	
-	plain = (unsigned char*)gcry_sexp_nth_data(sexp_sig_plain, 1, &plain_size);
+	plain = (unsigned char*)gcry_sexp_nth_data(sexp_sig_token, 1, &plain_size);
 	if(!plain) {
 		fprintf (stderr, "Fail to extract token in signature: %s/%s\n", gcry_strsource (err), gcry_strerror (err));
 		return -1;
@@ -82,6 +82,15 @@ int decrypt_upg_signature(unsigned char *sig, unsigned int sig_size, unsigned in
 	
 	swap_bytes(plain, plain_size);
 	memcpy(sig, plain, (plain_size < sig_size ? plain_size : sig_size));
+	
+	gcry_sexp_release(sexp_pubkey);
+	gcry_sexp_release(sexp_sig);
+	gcry_sexp_release(sexp_sig_plain);
+	gcry_sexp_release(sexp_sig_token);
+	
+	gcry_mpi_release(mpi_sig);
+	gcry_mpi_release(mpi_modulus);
+	gcry_mpi_release(mpi_pubexpo);
 	
 	return 0;
 }
@@ -104,6 +113,8 @@ int decrypt_upg_data(unsigned char *data, size_t data_size, unsigned char * key,
 		fprintf (stderr, "Fail to decrypt AES data: %s/%s\n", gcry_strsource (err), gcry_strerror (err));
 		return -1;
 	}
+	
+	gcry_cipher_close(hd);
 	
 	return 0;
 }
@@ -216,6 +227,8 @@ int unpack_upg(unsigned char *data, size_t data_size){
 		dname = dirname(dirc);
 		if(dname[0] != 0x2E || dname[1])
 			mkdirp(dname);
+		if(dirc)
+			free(dirc);
 		
 		upg_entry_file = fopen(dest_file, "wb");
 		if(!upg_entry_file) {
@@ -240,7 +253,7 @@ int main(int argc, char* argv[])
 {
 	unsigned long int upg_file_size;
 	unsigned int pubkey_idx = -1;
-	unsigned char *upg_buf;
+	unsigned char *upg_buf = NULL;
 	upg_header *header;
 	
 	if(argc < 2){
@@ -300,6 +313,7 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 	
-	free(upg_buf);
+	if(upg_buf)
+		free(upg_buf);
 	return 0;
 }
