@@ -8,7 +8,7 @@ https://github.com/frederic/pflupg-tool
 
 ## Customize
 You can add public keys in pflupg.h file:
-> #define PUBLIC_KEYS_CNT 2
+> \#define PUBLIC_KEYS_CNT 2
 > // { name, public exponent e (hex string), modulus n (hex string)}
 > static const char *public_keys[PUBLIC_KEYS_CNT][3] = {
 >  {"my_key_1", "010001", "AABBCCDD"},
