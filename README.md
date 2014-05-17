@@ -22,6 +22,7 @@ You'll need Libgcrypt library to compile it. Then:
 
 ## Usage
 > Usage: ./pflupg <upg_filename> [key_name]
+>
 > 2 keys available :
 > * my_key_1
 > * my_key_2
